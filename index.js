@@ -21,7 +21,7 @@ SomeLockBridgePlatform2.prototype = {
     accessories.push(new SomeSwitchAccessory2(this.log));
     callback(accessories);
   }
-}
+};
 
 function SomeLockAccessory2(log) {
   this.log = log;
@@ -46,7 +46,7 @@ function SomeLockAccessory2(log) {
   this.lockServiceC = new Service.LockMechanism(this.name + " C", this.name + " C");
   this.lockServiceC.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateC.bind(this));
   this.lockServiceC.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateC.bind(this)).on('set', this.setStateOther.bind(this, this.lockServiceC));
-};
+}
 
 SomeLockAccessory2.prototype.getStateA = function(callback) {
   callback(null, this.lockServiceALocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED);
@@ -65,7 +65,7 @@ SomeLockAccessory2.prototype.setStateA = function(state, callback) {
   // callback gets executed in setStateOther
 
   // Additionally mirror current state to lockServiceB
-  this.lockServiceBLocked = true;
+  this.lockServiceBLocked = state === Characteristic.LockTargetState.SECURED;
   this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).updateValue(state);
   this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).updateValue(state);
 };
