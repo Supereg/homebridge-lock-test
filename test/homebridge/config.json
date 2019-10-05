@@ -1,0 +1,15 @@
+{
+  "bridge": {
+    "name": "Testbridge",
+    "username": "AC:72:E6:6D:1D:83",
+    "port": 51826,
+    "pin": "812-81-235"
+  },
+
+  "accessories": [
+    {
+      "accessory": "SomeLock2",
+      "name": "TestLock"
+    }
+  ]
+}

@@ -37,15 +37,15 @@ function SomeLockAccessory2(log) {
 
   this.lockServiceA = new Service.LockMechanism(this.name + " A", this.name + " A");
   this.lockServiceA.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateA.bind(this));
-  this.lockServiceA.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateA.bind(this)).on('set', this.setState.bind(this, "A"));
+  this.lockServiceA.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateA.bind(this)).on('set', this.setStateA.bind(this));
 
   this.lockServiceB = new Service.LockMechanism(this.name + " B", this.name + " B");
   this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateB.bind(this));
-  this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateB.bind(this)).on('set', this.setState.bind(this, "B"));
+  this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateB.bind(this)).on('set', this.setStateOther.bind(this, this.lockServiceB));
 
   this.lockServiceC = new Service.LockMechanism(this.name + " C", this.name + " C");
   this.lockServiceC.getCharacteristic(Characteristic.LockCurrentState).on('get', this.getStateC.bind(this));
-  this.lockServiceC.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateC.bind(this)).on('set', this.setState.bind(this, "C"));
+  this.lockServiceC.getCharacteristic(Characteristic.LockTargetState).on('get', this.getStateC.bind(this)).on('set', this.setStateOther.bind(this, this.lockServiceC));
 };
 
 SomeLockAccessory2.prototype.getStateA = function(callback) {
@@ -60,59 +60,39 @@ SomeLockAccessory2.prototype.getStateC = function(callback) {
   callback(null, this.lockServiceCLocked ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED);
 };
 
-SomeLockAccessory2.prototype.execLockAction = function(unlockType, doLock, callback) {
-  if (unlockType === "A") {
-    this.lockServiceALocked = doLock;
-  }
-  else if (unlockType === "B") {
-    this.lockServiceBLocked = doLock;
-  }
-  else {
-    this.lockServiceCLocked = doLock;
-  }
-  callback();
-  this.log("execLockAction is execute for unlockType '%s' and doLock '%s'", unlockType, doLock);
-}
+SomeLockAccessory2.prototype.setStateA = function(state, callback) {
+  this.setStateOther(this.lockServiceA, state, callback);
+  // callback gets executed in setStateOther
 
-SomeLockAccessory2.prototype.setState = function(unlockType, homeKitState, callback, context) {
-  var doLock = homeKitState == Characteristic.LockTargetState.SECURED;
-  var newHomeKitState = doLock ? Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
-  var newHomeKitStateTarget = doLock ? Characteristic.LockTargetState.SECURED : Characteristic.LockTargetState.UNSECURED;
-  this.log("S E T S T A T E: unlockType = %s, doLock = %s,homeKitState = %s", unlockType, doLock, homeKitState);
+  setTimeout(() => {
+    // Additionally mirror current state to lockServiceB
+    this.lockServiceBLocked = true;
+    this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).updateValue(state);
+    this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).updateValue(state);
+  }, 1000);
+};
 
-  if (unlockType === "C") {
-    this.lockServiceC.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-    this.lockServiceC.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
-    callback(null);
-    return;
+SomeLockAccessory2.prototype.setStateOther = function (service, state, callback) {
+  this.log("S E T S T A T E: service=" + service.getCharacteristic(Characteristic.Name).value + "; SECURING=" + (state === Characteristic.LockTargetState.SECURED));
+
+  const locked = state === Characteristic.LockTargetState.SECURED;
+  if (service === this.lockServiceA) {
+    this.lockServiceALocked = locked;
+  } else if (service === this.lockServiceB) {
+    this.lockServiceBLocked = locked;
+  } else if (service === this.lockServiceC) {
+    this.lockServiceCLocked = locked;
   }
 
-  var myLockActionCallback = function() {
-    // update lock service A
-    this.lockServiceA.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, null);
-    this.lockServiceA.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, null);
-    this.lockServiceALocked = doLock;
-
-    // update lock service B
-    this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).updateValue(newHomeKitStateTarget, undefined, "myContextString");
-    this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).updateValue(newHomeKitState, undefined, "myContextString");
-    this.lockServiceBLocked = doLock;
-
-    callback(null);
-  }.bind(this);
-
-  if (context === "myContextString") {
-    // only call callback as characteristic already has corret state
-    callback(null);
-  }
-  else {
-    this.execLockAction(unlockType, doLock, myLockActionCallback);
-  }
-
+  callback(); // return callback before we update the LockCurrentState characteristic
+  service.getCharacteristic(Characteristic.LockCurrentState).updateValue(state);
 };
 
 SomeLockAccessory2.prototype.getServices = function() {
-  return [ this.lockServiceA, this.lockServiceB, this.lockServiceC, this.informationService ];
+  return [ this.lockServiceA,
+    this.lockServiceB,
+    this.lockServiceC,
+    this.informationService ];
 };
 
 function SomeSwitchAccessory2(log) {

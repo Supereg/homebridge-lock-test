@@ -1,1 +1,5 @@
 npm-debug.log
+node_modules
+test/homebridge/persist
+test/homebridge/accessories
+.idea
