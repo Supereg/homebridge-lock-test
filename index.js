@@ -64,12 +64,10 @@ SomeLockAccessory2.prototype.setStateA = function(state, callback) {
   this.setStateOther(this.lockServiceA, state, callback);
   // callback gets executed in setStateOther
 
-  setTimeout(() => {
-    // Additionally mirror current state to lockServiceB
-    this.lockServiceBLocked = true;
-    this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).updateValue(state);
-    this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).updateValue(state);
-  }, 1000);
+  // Additionally mirror current state to lockServiceB
+  this.lockServiceBLocked = true;
+  this.lockServiceB.getCharacteristic(Characteristic.LockTargetState).updateValue(state);
+  this.lockServiceB.getCharacteristic(Characteristic.LockCurrentState).updateValue(state);
 };
 
 SomeLockAccessory2.prototype.setStateOther = function (service, state, callback) {
